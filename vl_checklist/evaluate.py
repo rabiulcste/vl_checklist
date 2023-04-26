@@ -166,7 +166,7 @@ class Evaluate(object):
 
         elif self.task == "itc":
             for name in d.data:
-                print(f"Evaluating {name}/{data_type} data")
+                print(f"Evaluating {name}/{data_type}")
                 sample_true = []
                 sample_false = []
                 num_t, num_f = 0, 0
