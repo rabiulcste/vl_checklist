@@ -7,4 +7,4 @@ DATA:
   TEST_DATA: ["hake", "swig_agent", "swig_destination", "swig_item", "swig_tool", "vg_obj", "vg_subj"]   
 OUTPUT: 
   DIR: "output/our_clip"
-  NUM: 5
+  NUM: 2

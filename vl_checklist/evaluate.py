@@ -23,7 +23,7 @@ class Evaluate(object):
         self.types = m["DATA"]["TYPES"]
         self.dir = m["OUTPUT"]["DIR"]
         self.sample_num = m["OUTPUT"]["NUM"]
-        self.model_name = model.model_name()
+        self.model_name = model.model_name().replace("/", "_")
 
     def start(self):
         print(f"Configs: model = {self.model_name} | task = {self.task}  | datasets = {self.data_names}")
@@ -231,13 +231,13 @@ class Evaluate(object):
                 sample_f = random.sample(sample_false, self.sample_num)
 
                 sample_path = os.path.join(
-                    self.cur_dir, self.dir, "itc", "sample", f"{file_name}_{name}"
+                    self.cur_dir, self.dir, "itc", self.model_name, "sample", f"{file_name}_{name}"
                 )
                 if not os.path.exists(sample_path):
                     os.makedirs(sample_path)
                 with open(
                     os.path.join(
-                        self.cur_dir, self.dir, "itc", f"{file_name}_{name}.json"
+                        self.cur_dir, self.dir, "itc", self.model_name, f"{file_name}_{name}.json"
                     ),
                     "w",
                     encoding="utf-8",
