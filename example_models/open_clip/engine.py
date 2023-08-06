@@ -32,12 +32,17 @@ def chunks(iterable, size):
 
 
 class OpenCLIP(VLPModel):
-    def __init__(self, model_id):
+    def __init__(self, model_id, src_type: str = "local"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model_dir = "resources"
         self.model_id = model_id
-        self.model, self.preprocess = self._load_model(self.model_id)
-        self.tokenizer = get_tokenizer("ViT-B-32")
+        if src_type == "local":
+            self.model, self.preprocess = self._load_model(self.model_id)
+            self.tokenizer = get_tokenizer("ViT-B-32")
+        else:
+            self.model, _, self.preprocess = create_model_and_transforms(
+                self.model_id, device=self.device
+            )
+            self.tokenizer= get_tokenizer(self.model_id)
 
     def model_name(self):
         return self.model_id
@@ -61,7 +66,7 @@ class OpenCLIP(VLPModel):
 
         return model, preprocess
 
-    def predict(self, images: list, texts: list, src_type: str = "local"):
+    def predict(self, images: list, texts: list):
         # text format is [["there is a cat","there is a dog"],[...,...]...]
         images = [Image.open(image) for image in images]
         images = [self.preprocess(image) for image in images]

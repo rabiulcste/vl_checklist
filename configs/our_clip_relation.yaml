@@ -3,7 +3,7 @@ BATCH_SIZE: 32
 MODE_NAME: "OpenCLIP"
 TASK: "itc"
 DATA:
-  TYPES: ["Relation/action", "Relation/spatial"]
+  TYPES: ["Relation/action"]
   TEST_DATA: ["hake", "swig", "vg"]   
 OUTPUT: 
   DIR: "output/our_clip"

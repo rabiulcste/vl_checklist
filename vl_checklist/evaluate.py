@@ -15,6 +15,7 @@ class Evaluate(object):
         self.root_dir = os.path.dirname(os.path.realpath(__file__))
         self.cur_dir = os.path.realpath(os.curdir)
         m = yaml.load(open(config_file, "r"), Loader=yaml.FullLoader)
+        print(m)
         self.batch_size = m["BATCH_SIZE"]
         self.model = model
         self.max_num = m["MAX_NUM"]
@@ -25,12 +26,30 @@ class Evaluate(object):
         self.sample_num = m["OUTPUT"]["NUM"]
         self.model_name = model.model_name().replace("/", "_")
 
-    def start(self):
-        print(f"Configs: model = {self.model_name} | task = {self.task}  | datasets = {self.data_names}")
+    def start(self, prompt=""):
+        print(
+            f"Configs: model = {self.model_name} | task = {self.task}  | datasets = {self.data_names}"
+        )
+        remaining_evals = False
         for data_type in self.types:
-            self.eval(data_type=data_type)
+            for name in self.data_names:
+                file_name = data_type.replace("/", "_")
+                fpath = os.path.join(
+                    self.cur_dir,
+                    self.dir,
+                    "itc",
+                    self.model_name,
+                    f"{file_name}_{name}.json",
+                )
+                if os.path.exists(fpath):
+                    print(f"Skipping evaluation {name}/{data_type}")
+                    continue
+                remaining_evals = True
 
-    def eval(self, data_type):
+        if remaining_evals:
+            self.eval(data_type=data_type, prompt=prompt)
+
+    def eval(self, data_type, prompt):
         max_number = self.max_num
         d = DataLoader(self.data_names, data_type, self.task)
         results = {}
@@ -167,11 +186,11 @@ class Evaluate(object):
         elif self.task == "itc":
             for name in d.data:
                 print(f"Evaluating {name}/{data_type}")
-                sample_true = []
-                sample_false = []
+                sample_true, sample_false = [], []
                 num_t, num_f = 0, 0
                 if max_number:
                     d.data[name] = d.data[name][: int(max_number / 2)]
+
                 starttime = time.time()
                 for batch in tqdm(
                     chunks(d.data[name], self.batch_size),
@@ -182,18 +201,14 @@ class Evaluate(object):
                     images = [z["path"] for z in batch]
                     texts_pos = [z["texts_pos"][0] for z in batch]
                     texts_neg = [z["texts_neg"][0] for z in batch]
-                    # print(
-                    #     f"pos sz: {len(texts_pos)}, neg sz: {len(texts_neg)}, img sz: {len(images)}"
-                    # )
-                    # try:
-                    result_pos = self.model.predict(images, texts_pos, src_type="local")
-                    result_neg = self.model.predict(images, texts_neg, src_type="local")
-                    # print(
-                    #     f"result pos: {result_pos['probs']}, result neg: {result_neg['probs']}"
-                    # )
-                    # except Exception as e:
-                    #    print(e)
-                    #    continue
+
+                    # apply prompt to texts
+                    if prompt:
+                        texts_pos = [prompt + " " + z for z in texts_pos]
+                        texts_neg = [prompt + " " + z for z in texts_neg]
+
+                    result_pos = self.model.predict(images, texts_pos)
+                    result_neg = self.model.predict(images, texts_neg)
 
                     result_t1 = zip(result_pos["probs"], result_neg["probs"])
                     result_tmp = list(result_t1)
@@ -230,18 +245,30 @@ class Evaluate(object):
                 sample_t = random.sample(sample_true, self.sample_num)
                 sample_f = random.sample(sample_false, self.sample_num)
 
+                prompt_str = prompt.replace(" ", "_")
                 sample_path = os.path.join(
-                    self.cur_dir, self.dir, "itc", self.model_name, "sample", f"{file_name}_{name}"
+                    self.cur_dir,
+                    self.dir,
+                    "itc",
+                    prompt_str,
+                    self.model_name,
+                    "sample",
+                    f"{file_name}_{name}",
                 )
                 if not os.path.exists(sample_path):
                     os.makedirs(sample_path)
-                with open(
-                    os.path.join(
-                        self.cur_dir, self.dir, "itc", self.model_name, f"{file_name}_{name}.json"
-                    ),
-                    "w",
-                    encoding="utf-8",
-                ) as f:
+
+                # create a json file path to store the results
+                fname = os.path.join(
+                    self.cur_dir,
+                    self.dir,
+                    "itc",
+                    prompt_str,
+                    self.model_name,
+                    f"{file_name}_{name}.json",
+                )
+
+                with open(fname, "w", encoding="utf-8") as f:
                     result_meta = {
                         "sample_correct_outputs": sample_t,
                         "sample_incorrect_outputs": sample_f,
